@@ -32,8 +32,8 @@ end
 
 end
 
-remove_article(str) = Base.replace(Base.replace(str, "the" => ""), "The" => "")
-trim_whitespace(str) = lstrip(rstrip(str))
+remove_article(name) = Base.replace(Base.replace(name, "the" => ""), "The" => "")
+trim_whitespace(name) = lstrip(rstrip(name))
 
 function tokenize_titles(str, rules)
     for r in rules
@@ -46,11 +46,11 @@ function tokenize_titles(str, rules)
     return "Unknown"
 end
 
-function get_title_token(row, replace_rules)
-    title = trim_whitespace(remove_article(extract_title(row.Name)))
+function get_title_token(df, replace_rules)
+    title = trim_whitespace(remove_article(extract_title(df["Name"])))
     token = tokenize_titles(title, replace_rules)
     if token == "Unknown"
-       token = row.Sex == "female" ? "Miss" : "Mr"
+       token = df["Sex"] == "female" ? "Miss" : "Mr"
     end
     return token
 end
