@@ -20,16 +20,14 @@ end
 
 extract_title(name) = String(last(split(split(name, ".")[1], ", ")))
 
-function title_frequencies(csv_reader)
+function title_frequencies(df)
     freq = Dict()
-    for row in csv_reader
-        title = extract_title(row.Name)
+    for row in eachrow(df)
+        title = extract_title(row["Name"])
         freq[title] = get!(freq, title, 0) + 1
     end
 
     return freq
-end
-
 end
 
 remove_article(name) = Base.replace(Base.replace(name, "the" => ""), "The" => "")
@@ -43,14 +41,13 @@ function tokenize_titles(str, rules)
             end
         end
     end
-    return "Unknown"
+    return str
 end
 
-function get_title_token(df, replace_rules)
-    title = trim_whitespace(remove_article(extract_title(df["Name"])))
+function get_title_token(str, replace_rules)
+    title = trim_whitespace(remove_article(extract_title(str)))
     token = tokenize_titles(title, replace_rules)
-    if token == "Unknown"
-       token = df["Sex"] == "female" ? "Miss" : "Mr"
-    end
     return token
+end
+
 end
