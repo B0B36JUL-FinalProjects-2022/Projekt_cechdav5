@@ -3,7 +3,9 @@ module TitanicClassifier
 using CSV
 
 # Write your package code here.
-export load_data, title_frequencies, get_title_token
+export load_data, title_frequencies, get_title_token, svm_hello
+
+include("svm.jl")
 
 function load_data()
     csv_reader = CSV.File("./data/train.csv")
