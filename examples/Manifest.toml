@@ -869,7 +869,7 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.TitanicClassifier]]
-deps = ["COSMO", "CSV", "LinearAlgebra"]
+deps = ["COSMO", "CSV", "LinearAlgebra", "Random"]
 path = ".."
 uuid = "b5afbe45-1ffa-4107-97f5-81fa7de1c500"
 version = "0.1.0"
