@@ -1,24 +1,16 @@
 module TitanicClassifier
 
 using CSV
+using DataFrames
 
 # Write your package code here.
-export load_data, title_frequencies, get_title_token, solve_SVM, computeKernel, LinearKernel, compute_bias, classify_SVM, hyperparamCrossValidation
+export title_frequencies, get_title_token, solve_SVM, computeKernel, LinearKernel,
+compute_bias, classify_SVM, hyperparamCrossValidation, categorical_to_int!,
+CSV_to_df, cabin_preprocessing!, replace_missing_with_median!, categorical_to_int
 
 include("svm.jl")
+include("data_preparation.jl")
 
-function load_data()
-    csv_reader = CSV.File("./data/train.csv")
-    i = 0
-    for row in csv_reader
-        print(row.Survived, "|", row.Pclass, "|", row.Name, "|",  row.Sex, "|",
-         row.Age, "|", row.SibSp, "|", row.Parch, "|", row.Ticket, "|", row.Fare, "|", row.Cabin, "|", row.Embarked, "\n")
-        i+=1
-        if i == 5
-            break
-        end
-    end
-end
 
 extract_title(name) = String(last(split(split(name, ".")[1], ", ")))
 
@@ -51,5 +43,14 @@ function get_title_token(str, replace_rules)
     token = tokenize_titles(title, replace_rules)
     return token
 end
+
+function cabin_to_categorical(cabin)
+    if !ismissing(cabin)
+        return cabin[1]
+    end
+    return 'U'
+end
+
+cabin_preprocessing!(df) = transform!(df, :Cabin => ByRow(c -> cabin_to_categorical(c)) => :Cabin)
 
 end
