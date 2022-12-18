@@ -16,15 +16,16 @@ end
 
 computeKernel(Xi, Xj, ::LinearKernel) = (Xi*Xj')
 
-computeKernel(Xi, Xj, pk::PolynomialKernel) = ((Xi*Xj') + ones((size(Xi, 1), size(Xi,1)))) .^ pk.d
+computeKernel(Xi, Xj, pk::PolynomialKernel) = ((Xi*Xj') + ones((size(Xi, 1), size(Xj,1)))) .^ pk.d
 
 function computeKernel(Xi, Xj, rk::RBFKernel)
     n = size(Xi,1)
+    m = size(Xj,1)
     d = size(Xi,2)
-    sq_dist = reshape(sum((reshape(Xi[1,:], (1,d)) .- Xj).^2, dims=2), (1,n))
+    sq_dist = reshape(sum((reshape(Xi[1,:], (1,d)) .- Xj).^2, dims=2), (1,m))
 
     for i in 2:n
-        curr_sq_dist = reshape(sum((reshape(Xi[i,:], (1,d)) .- Xj).^2, dims=2), (1,n))
+        curr_sq_dist = reshape(sum((reshape(Xi[i,:], (1,d)) .- Xj).^2, dims=2), (1,m))
         sq_dist = vcat(sq_dist, curr_sq_dist)
     end
 
@@ -87,7 +88,7 @@ function compute_bias(K, y, z, C)
         LB_mask = (not_sv_mask .&& (y.==1)) .|| (sv_mask .&& (y.==-1))
         UB_mask = (sv_mask .&& (y.==1)) .|| (not_sv_mask .&& (y.==-1))
 
-        LB_val = reduce((x,y) -> max.(x,y), e_i[LB_mask])
+        LB_val = reduce((x,y) -> max.(x,y), e_i[LB_mask])        
         UB_val = reduce((x,y) -> min.(x,y), e_i[UB_mask])
 
         bias = (LB_val + UB_val) / 2
@@ -108,29 +109,28 @@ function classify_SVM(X, model)
     return classif
 end
 
-function hyperparamCrossValidation(X, y; train_ratio=0.8, num_iter = 10, C_opt=nothing, kernel_opt=nothing)
-    #=C_opt = nothing ? [0.001, 0.1, 1, 10, 1000] : C_opt
-    kernel_opt = nothing ? [LinearKernel(), PolynomialKernel(1), PolynomialKernel(3), 
+function hyperparamCrossValidation(X, y; train_ratio=0.8, num_iter = 10, Cs =nothing, kernels=nothing)
+    Cs = Cs === nothing ? [0.001, 0.1, 1, 10, 1000] : Cs
+    kernels = kernels === nothing ? [LinearKernel(), PolynomialKernel(1), PolynomialKernel(3), 
     PolynomialKernel(5), RBFKernel(0.1), RBFKernel(1), RBFKernel(10), RBFKernel(20),
-    RBFKernel(100), RBFKernel(1000)] : kernel_opt=#
+    RBFKernel(100), RBFKernel(1000)] : kernels
 
+    #=
     C_opt = C_opt === nothing ? [0.001, 0.1, 1, 10, 1000] : C_opt
-    kernel_opt = kernel_opt === nothing ? [LinearKernel()] : kernel_opt
+    kernel_opt = kernel_opt === nothing ? [LinearKernel()] : kernel_opt =#
 
     best_err = Inf
     best_hyperparams = nothing
 
-    for C in C_opt
-        for kern in kernel_opt
+    for C in Cs
+        for kern in kernels
             avg_error = 0
-            for i in num_iter
+            for i in 1:num_iter
                 trn_x, trn_y, tst_x, tst_y = randomDataSplit(X, y; train_ratio)
                 model = solve_SVM(trn_x, trn_y, C; kernel = kern)
                 labels = classify_SVM(tst_x, model)
                 tmp = ones(length(tst_y))
                 avg_error += sum(tmp[labels .!= tst_y])/length(tst_y)
-                print(i, "  \n")
-
             end
             avg_error /= num_iter
 
