@@ -3,7 +3,7 @@ module TitanicClassifier
 using CSV
 
 # Write your package code here.
-export load_data, title_frequencies, get_title_token, svm_hello
+export load_data, title_frequencies, get_title_token, solve_SVM, computeKernel, LinearKernel, compute_bias
 
 include("svm.jl")
 
