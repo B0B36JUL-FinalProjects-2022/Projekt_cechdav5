@@ -8,16 +8,11 @@ export title_frequencies, get_title_token, solve_SVM, computeKernel, LinearKerne
 compute_bias, classify_SVM, hyperparamCrossValidation, categorical_to_int!,
 CSV_to_df, cabin_preprocessing!, replace_missing_with_median!, categorical_to_int,
 replace_missing_with_most_common!, name_to_title!, title_to_title_token!, name_preprocessing!,
-ticket_preprocessing!
+ticket_preprocessing!, replace_missing_with_linreg!, titanic_preprocessing!, prepare_data_for_SVM,
+PolynomialKernel, randomDataSplit
 
 include("svm.jl")
 include("data_preparation.jl")
-
-#=
-extract_title(name) = String(last(split(split(name, ".")[1], ", ")))
-remove_article(name) = Base.replace(Base.replace(name, "the" => ""), "The" => "")
-trim_whitespace(name) = lstrip(rstrip(name))
-get_normalized_title(name) = trim_whitespace(remove_article(extract_title(str))) =#
 
 function get_normalized_title(name)
     title = String(last(split(split(name, ".")[1], ", ")))
@@ -88,6 +83,16 @@ function ticket_preprocessing!(titanic_df)
     mapping = get_ticket_mappig(titanic_df)
 
     transform!(titanic_df, :Ticket => ByRow(t -> mapping[extract_ticket_num(t)]) => :Ticket)
+end
+
+function titanic_preprocessing!(titanic_df)
+    cabin_preprocessing!(titanic_df)
+    name_preprocessing!(titanic_df)
+    ticket_preprocessing!(titanic_df)
+    replace_missing_with_median!(titanic_df, [:Fare])
+    replace_missing_with_most_common!(titanic_df, [:Embarked])
+    categorical_to_int!(titanic_df, [:Sex, :Name, :Embarked, :Cabin])
+    replace_missing_with_linreg!(titanic_df, :Age, [:Pclass, :Name])
 end
 
 end

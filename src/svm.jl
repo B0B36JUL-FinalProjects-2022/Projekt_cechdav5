@@ -32,11 +32,6 @@ function computeKernel(Xi, Xj, rk::RBFKernel)
     return exp.(-sq_dist ./ (2*rk.std^2))
 end
  
-function computeW(X, y, z)
-    w = sum((y.*z.*X), dims=1)
-    reshape(w, (length(w),))
-end
- 
 function solve_SVM_dual(K, y, C)
     my_dim = size(K, 1)
 
@@ -115,10 +110,6 @@ function hyperparamCrossValidation(X, y; train_ratio=0.8, num_iter = 10, Cs =not
     PolynomialKernel(5), RBFKernel(0.1), RBFKernel(1), RBFKernel(10), RBFKernel(20),
     RBFKernel(100), RBFKernel(1000)] : kernels
 
-    #=
-    C_opt = C_opt === nothing ? [0.001, 0.1, 1, 10, 1000] : C_opt
-    kernel_opt = kernel_opt === nothing ? [LinearKernel()] : kernel_opt =#
-
     best_err = Inf
     best_hyperparams = nothing
 
@@ -156,4 +147,13 @@ function randomDataSplit(X, y; train_ratio)
     cv_test_y = y[idx_perm[cv_train_cnt+1:n]]
         
     return cv_train_x, cv_train_y, cv_test_x, cv_test_y
+end
+
+function prepare_data_for_SVM(X, y)
+    X = standardize_data(X)       # mean = 0, std = 1
+    X = hcat(X, ones(size(X, 1))) # add bias
+
+    y[y .== 0] .= -1; # transform 0 labels to -1
+
+    return X, y 
 end
