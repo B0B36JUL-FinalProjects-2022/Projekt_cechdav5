@@ -32,7 +32,7 @@ function computeKernel(Xi, Xj, rk::RBFKernel)
     return exp.(-sq_dist ./ (2*rk.std^2))
 end
  
-function solve_SVM_dual(K, y, C)
+function solve_SVM_dual(K::Matrix{<: Real}, y::Vector{<: Real}, C::Real)
     my_dim = size(K, 1)
 
     P = y'.*K.*y
@@ -53,17 +53,17 @@ function solve_SVM_dual(K, y, C)
     return result.x
 end
  
-function solve_SVM(X, y, C; kernel=LinearKernel(), kwargs...)
+function solve_SVM(X, y::Vector{<: Integer}, C::Real; kernel::KernelSpecification=LinearKernel())
     K = computeKernel(X, X, kernel)
 
-    z = solve_SVM_dual(K, y, C; kwargs...)
+    z = solve_SVM_dual(K, y, C)
 
     b = compute_bias(K, y, z, C)
 
     return Dict("z" => z[z .> 0], "bias" => b, "y"=>y[z .> 0], "sv" => X[z .> 0, :], "kernel" => kernel)
 end
  
-function compute_bias(K, y, z, C)
+function compute_bias(K::Matrix{<: Real}, y::Vector{<: Integer}, z::Vector{<: Real}, C::Real)
     zy = y.*z
 
     on_margin_mask = (z .> 0) .&& (z .< C) #support vectors exactly on margin
@@ -92,7 +92,7 @@ function compute_bias(K, y, z, C)
     return bias
 end
 
-function classify_SVM(X, model)
+function classify_SVM(X, model::Dict)
     K = computeKernel(X, model["sv"], model["kernel"])
 
     #w' * X + bias
@@ -104,7 +104,7 @@ function classify_SVM(X, model)
     return classif
 end
 
-function hyperparamCrossValidation(X, y; train_ratio=0.8, num_iter = 10, Cs =nothing, kernels=nothing)
+function hyperparamCrossValidation(X, y::Vector{<: Integer}; train_ratio::Float64=0.8, num_iter::Integer = 10, Cs::Vector{<: Real}=nothing, kernels::Vector{KernelSpecification}=nothing)
     Cs = Cs === nothing ? [0.001, 0.1, 1, 10, 1000] : Cs
     kernels = kernels === nothing ? [LinearKernel(), PolynomialKernel(1), PolynomialKernel(3), 
     PolynomialKernel(5), RBFKernel(0.1), RBFKernel(1), RBFKernel(10), RBFKernel(20),
@@ -135,7 +135,7 @@ function hyperparamCrossValidation(X, y; train_ratio=0.8, num_iter = 10, Cs =not
     return best_err, best_hyperparams
 end
 
-function randomDataSplit(X, y; train_ratio)
+function randomDataSplit(X, y::Vector{<: Integer}; train_ratio::Float64)
     n = length(y)
     cv_train_cnt = floor(Int, n*train_ratio)
     
@@ -149,7 +149,7 @@ function randomDataSplit(X, y; train_ratio)
     return cv_train_x, cv_train_y, cv_test_x, cv_test_y
 end
 
-function prepare_data_for_SVM(X, y)
+function prepare_data_for_SVM(X, y::Vector{<: Integer})
     X = standardize_data(X)       # mean = 0, std = 1
     X = hcat(X, ones(size(X, 1))) # add bias
 

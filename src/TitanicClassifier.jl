@@ -14,16 +14,22 @@ PolynomialKernel, randomDataSplit, standardize_data, get_y, replace_missing_with
 include("svm.jl")
 include("data_preparation.jl")
 
-function get_normalized_title(name)
+function get_normalized_title(name::AbstractString)
     title = String(last(split(split(name, ".")[1], ", ")))
     title_without_article = Base.replace(Base.replace(title, "the" => ""), "The" => "")
     normalized_title = lstrip(rstrip(title_without_article))
     return normalized_title
 end
 
-name_to_title!(titanic_df) = transform!(titanic_df, :Name => ByRow(get_normalized_title) => :Name)
+function name_to_title(titanic_df::DataFrame)
+    titanic_cpy = copy(titanic_df)
+    name_to_title!(titanic_cpy)
+    return titanic_cpy 
+end
 
-function get_title_token(title)
+name_to_title!(titanic_df::DataFrame) = transform!(titanic_df, :Name => ByRow(get_normalized_title) => :Name)
+
+function get_title_token(title::AbstractString)
     replacement_rules = [[["Dr", "Rev", "Col", "Major", "Capt"], "Officer"],
     [["Jonkheer", "Countess", "Sir", "Lady", "Don", "Dona"], "Royalty"], 
     [["Mlle"], "Miss"], [["Ms"], "Miss"], [["Mme"],"Mrs"]]
@@ -37,23 +43,41 @@ function get_title_token(title)
     return title
 end
 
-title_to_title_token!(titanic_df) = transform!(titanic_df, :Name => ByRow(get_title_token) => :Name)
+function title_to_title_token(titanic_df::DataFrame)
+    titanic_cpy = copy(titanic_df)
+    title_to_title_token!(titanic_cpy)
+    return titanic_cpy 
+end
 
-function name_preprocessing!(titanic_df)
+title_to_title_token!(titanic_df::DataFrame) = transform!(titanic_df, :Name => ByRow(get_title_token) => :Name)
+
+function name_preprocessing(titanic_df::DataFrame)
+    titanic_cpy = copy(titanic_df)
+    name_preprocessing!(titanic_cpy)
+    return titanic_cpy 
+end
+
+function name_preprocessing!(titanic_df::DataFrame)
     name_to_title!(titanic_df)
     title_to_title_token!(titanic_df)
 end
 
-function cabin_to_categorical(cabin)
+function cabin_to_categorical(cabin::Union{AbstractString, Missing})
     if !ismissing(cabin)
         return cabin[1]
     end
     return 'U'
 end
 
-cabin_preprocessing!(titanic_df) = transform!(titanic_df, :Cabin => ByRow(c -> cabin_to_categorical(c)) => :Cabin)
+function cabin_preprocessing(titanic_df::DataFrame) 
+    titanic_cpy = copy(titanic_df)
+    cabin_preprocessing!(titanic_cpy)
+    return titanic_cpy 
+end
 
-function extract_ticket_num(ticket) 
+cabin_preprocessing!(titanic_df::DataFrame) = transform!(titanic_df, :Cabin => ByRow(c -> cabin_to_categorical(c)) => :Cabin)
+
+function extract_ticket_num(ticket::AbstractString) 
     temp = split(ticket, " ")
     if (length(temp) == 1 && temp[1]=="LINE")
         return -1
@@ -62,7 +86,7 @@ function extract_ticket_num(ticket)
     end
 end
 
-function get_ticket_mappig(titanic_df)
+function get_ticket_mappig(titanic_df::DataFrame)
     tickets = Set()
 
     for row in eachrow(titanic_df)
@@ -79,13 +103,25 @@ function get_ticket_mappig(titanic_df)
     return ticket_idx_mapping
 end
 
-function ticket_preprocessing!(titanic_df)
+function ticket_preprocessing(titanic_df::DataFrame)
+    titanic_cpy = copy(titanic_df)
+    ticket_preprocessing!(titanic_cpy)
+    return titanic_cpy 
+end
+
+function ticket_preprocessing!(titanic_df::DataFrame)
     mapping = get_ticket_mappig(titanic_df)
 
     transform!(titanic_df, :Ticket => ByRow(t -> mapping[extract_ticket_num(t)]) => :Ticket)
 end
 
-function titanic_preprocessing!(titanic_df)
+function titanic_preprocessing(titanic_df::DataFrame)
+    titanic_cpy = copy(titanic_df)
+    titanic_preprocessing!(titanic_cpy)
+    return titanic_cpy 
+end
+
+function titanic_preprocessing!(titanic_df::DataFrame)
     cabin_preprocessing!(titanic_df)
     name_preprocessing!(titanic_df)
     ticket_preprocessing!(titanic_df)
