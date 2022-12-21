@@ -9,7 +9,7 @@ compute_bias, classify_SVM, hyperparamCrossValidation, categorical_to_int!,
 CSV_to_df, cabin_preprocessing!, replace_missing_with_median!, categorical_to_int,
 replace_missing_with_most_common!, name_to_title!, title_to_title_token!, name_preprocessing!,
 ticket_preprocessing!, replace_missing_with_linreg!, titanic_preprocessing!, prepare_data_for_SVM,
-PolynomialKernel, randomDataSplit
+PolynomialKernel, randomDataSplit, standardize_data, get_y, replace_missing_with_most_common, replace_missing_with_linreg
 
 include("svm.jl")
 include("data_preparation.jl")
