@@ -176,7 +176,6 @@ function hyperparam_cross_validation(X, y::Vector{<:Integer}; train_ratio::Float
     best_err = Inf
     best_hyperparams = nothing
 
-    i = 0
     for C in Cs
         for kern in kernels
             avg_error = 0
@@ -188,8 +187,6 @@ function hyperparam_cross_validation(X, y::Vector{<:Integer}; train_ratio::Float
                 avg_error += sum(tmp[labels.!=tst_y]) / length(tst_y)
             end
             avg_error /= num_iter
-            i+=1
-            print(i, "\n")
 
             if (avg_error < best_err)
                 best_hyperparams = Dict("C" => C, "Kernel" => kern)
