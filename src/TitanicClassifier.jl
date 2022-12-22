@@ -3,7 +3,6 @@ module TitanicClassifier
 using CSV
 using DataFrames
 
-# Write your package code here.
 export name_preprocessing, name_preprocessing!, cabin_preprocessing, cabin_preprocessing!,
 ticket_preprocessing, ticket_preprocessing!, titanic_preprocessing, ticket_preprocessing!,
 compute_kernel, LinearKernel, PolynomialKernel, RBFKernel, solve_SVM_dual, compute_bias,
@@ -11,12 +10,6 @@ solve_SVM, classify_SVM, prepare_data_for_SVM, hyperparam_cross_validation, cate
 categorical_to_int!, replace_missing_with_median, replace_missing_with_most_common,
 replace_missing_with_linreg, standardize_data, CSV_to_df
 
-#=
-compute_bias, classify_SVM, hyperparamCrossValidation, categorical_to_int!,
-CSV_to_df, cabin_preprocessing!, replace_missing_with_median!, categorical_to_int,
-replace_missing_with_most_common!, name_to_title!, title_to_title_token!, name_preprocessing!,
-ticket_preprocessing!, replace_missing_with_linreg!, titanic_preprocessing!, prepare_data_for_SVM,
-PolynomialKernel, randomDataSplit, standardize_data, get_y, replace_missing_with_most_common, replace_missing_with_linreg=#
 
 include("svm.jl")
 include("data_preparation.jl")
@@ -122,12 +115,25 @@ function ticket_preprocessing!(titanic_df::DataFrame)
     transform!(titanic_df, :Ticket => ByRow(t -> mapping[extract_ticket_num(t)]) => :Ticket)
 end
 
+"""
+    titanic_preprocessing(titanic_df)
+
+Accepts DataFrame with the data from the Titanic dataset which is included
+in the `data` directory of the TitanicClassifier module, or one with the same structure.
+Returns a copy of this DataFrame with no missing values, and with all features converted to numeric
+values. For more information about preprocessing of individual features see `features.ipynb`
+in `examples` directory.  
+"""
 function titanic_preprocessing(titanic_df::DataFrame)
     titanic_cpy = copy(titanic_df)
     titanic_preprocessing!(titanic_cpy)
     return titanic_cpy 
 end
 
+"""
+Same functionality as `titanic_preprocessing` but modifies the original DataFrame,
+instead of creating a new copy.
+"""
 function titanic_preprocessing!(titanic_df::DataFrame)
     cabin_preprocessing!(titanic_df)
     name_preprocessing!(titanic_df)

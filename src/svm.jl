@@ -55,6 +55,33 @@ function solve_SVM_dual(K::Matrix{<: Real}, y::Vector{<: Real}, C::Real; eps::Re
     return result.x
 end
  
+
+"""
+    solve_SVM(X, y, C)
+
+Applies soft margin SVM algorithm to two class classification problem. Finds the support 
+vectors (SV) and their multipliers for given data, labels, and upper bound for 
+SV multipliers. Returns Dict `model` used for classification of unlabeled
+data with following following keys-value pairs:
+- `model["z"]`: support vector multipliers (solution of dual problem)
+- `model["sv"]`: support vectors
+- `model["y"]`: labels of support vectors
+- `model["bias"]`: bias
+    
+Accepts a `X` in which individual data samples are arranged into rows
+with last column being ones (bias term), `y` vector of labels for data samples,
+C is the upper bound for support vector multipliers. 
+# Arguments
+- `X`: data matrix of size (n, d+1), where n is the number of data samples, d is the
+dimension of data samples - the data samples must be augmented with an additional column of ones
+(for the bias term)
+- `y::Vector{<: Integer}`: labels equal to either 1, or -1 of size (n,)
+- `C`: upper bound for SV multipliers, must be greater than 0
+- `kernel::KernelSpecification=LinearKernel()`: kernel used for SVM solution and classification
+- `eps::Real=1e-6`: precision for dual problem solution
+
+See also `prepare_data_for_SVM`, `classify_SVM`, `hyperparam_cross_validation`.
+"""
 function solve_SVM(X, y::Vector{<: Integer}, C::Real; kernel::KernelSpecification=LinearKernel(), eps::Real=1e-6)
     K = compute_kernel(X, X, kernel)
 
@@ -94,6 +121,18 @@ function compute_bias(K::Matrix{<: Real}, y::Vector{<: Integer}, z::Vector{<: Re
     return bias
 end
 
+"""
+    classify_SVM(X, model)
+
+Classifies the given augmented data according to the given model. Returns vector
+of predicted labels for given data.
+    
+# Arguments
+- `X`: data matrix of size (n, d+1), where n is the number of data samples, d is the
+dimension of data samples - the data samples must be augmented with an additional column of ones
+(for the bias term)
+- `model::Dict`: trained SVM model returned by the `solve_SVM` function
+"""
 function classify_SVM(X, model::Dict)
     K = compute_kernel(X, model["sv"], model["kernel"])
 
@@ -106,7 +145,32 @@ function classify_SVM(X, model::Dict)
     return classif
 end
 
-function hyperparam_cross_validation(X, y::Vector{<: Integer}; train_ratio::Float64=0.8, num_iter::Integer = 10, Cs=nothing, kernels=nothing)
+"""
+    hyperparam_cross_validation(X, y)
+
+Returns a `hyperparam` Dict with best hyperparameters for the SVM algorithm according to average
+classification error over the course of several iterations of cross validation of
+the given data. Return value has following structure:
+- `hyperparam["C"]`: upper bound for the SV multipliers
+- `hyperparam["Kernel"]`: `KernelSpecification` - polynomial, RBF, or linear kernel
+with its hyperparameters
+    
+# Arguments
+- `X`: data matrix of size (n, d+1), where n is the number of data samples, d is the
+dimension of data samples - the data samples must be augmented with an additional column of ones
+(for the bias term)
+- `y::Vector{<: Integer}`: labels equal to either 1, or -1 of size (n,)
+- `train_ratio::Float64=0.8`: ratio based on which input data are split into
+train and test sets for cross validation
+- `num_iter::Integer = 10`: number of iterations of the cross validation
+- `Cs=nothing`: vector of hyperparameters C for SVM algorithm, if set to nothing
+C from [0.001, 0.1, 1, 10, 1000] are tested
+- `kernels=nothing`: vector of kernel specifications, if set to nothing,
+linear kernel, polynomial kernel with degree from [1, 3, 5], and RBF kernel
+with sigma from [0.1, 1, 10, 20, 100] are tested
+- `eps::Real=1e-6`: accuracy for numerical methods for solving the SVM dual problem
+"""
+function hyperparam_cross_validation(X, y::Vector{<: Integer}; train_ratio::Float64=0.8, num_iter::Integer = 10, Cs=nothing, kernels=nothing, eps::Real=1e-6)
     Cs = Cs === nothing ? [0.001, 0.1, 1, 10, 1000] : Cs
     kernels = kernels === nothing ? [LinearKernel(), PolynomialKernel(1), PolynomialKernel(3), 
     PolynomialKernel(5), RBFKernel(0.1), RBFKernel(1), RBFKernel(10), RBFKernel(20),
@@ -120,7 +184,7 @@ function hyperparam_cross_validation(X, y::Vector{<: Integer}; train_ratio::Floa
             avg_error = 0
             for i in 1:num_iter
                 trn_x, trn_y, tst_x, tst_y = random_data_split(X, y; train_ratio)
-                model = solve_SVM(trn_x, trn_y, C; kernel = kern)
+                model = solve_SVM(trn_x, trn_y, C; kernel = kern, eps=eps)
                 labels = classify_SVM(tst_x, model)
                 tmp = ones(length(tst_y))
                 avg_error += sum(tmp[labels .!= tst_y])/length(tst_y)
@@ -151,11 +215,23 @@ function random_data_split(X, y::Vector{<: Integer}; train_ratio::Float64)
     return cv_train_x, cv_train_y, cv_test_x, cv_test_y
 end
 
+"""
+    prepare_data_for_SVM(X, y)
+
+Augments given data with bias term, standardizes the data, and converts data labels to 
+format required by `solve_SVM` and `classify_SVM`. Returns tuple `(X, y)`,
+where `X` is the augmented standardized data matrix, and `y` is the modified labels vector.
+    
+# Arguments
+- `X`: data matrix of size (n, d), where n is the number of data samples, d is the
+dimension of data samples, or data vector of size (n,).
+- `y::Vector{<: Integer}`: labels equal to 1 for one class, any other integer for the other class, size (n,)
+"""
 function prepare_data_for_SVM(X, y::Vector{<: Integer})
     X = standardize_data(X)       # mean = 0, std = 1
     X = hcat(X, ones(size(X, 1))) # add bias
 
-    y[y .== 0] .= -1; # transform 0 labels to -1
+    y[y .!= 1] .= -1; # transform labels to 1, and -1
 
     return X, y 
 end
