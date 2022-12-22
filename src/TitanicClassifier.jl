@@ -122,7 +122,7 @@ Accepts DataFrame with the data from the Titanic dataset which is included
 in the `data` directory of the TitanicClassifier module, or one with the same structure.
 Returns a copy of this DataFrame with no missing values, and with all features converted to numeric
 values. For more information about preprocessing of individual features see `features.ipynb`
-in `examples` directory.  
+in the `examples` directory.  
 """
 function titanic_preprocessing(titanic_df::DataFrame)
     titanic_cpy = copy(titanic_df)
@@ -130,10 +130,6 @@ function titanic_preprocessing(titanic_df::DataFrame)
     return titanic_cpy 
 end
 
-"""
-Same functionality as `titanic_preprocessing` but modifies the original DataFrame,
-instead of creating a new copy.
-"""
 function titanic_preprocessing!(titanic_df::DataFrame)
     cabin_preprocessing!(titanic_df)
     name_preprocessing!(titanic_df)
