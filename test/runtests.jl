@@ -9,8 +9,8 @@ using DataFrames
         Mj = [1 2; 2 3]
         @test compute_kernel(Mi, Mj, LinearKernel()) == [5 8; 11 18]
         @test compute_kernel(Mi, Mj, PolynomialKernel(2)) == [36 81; 144 361]
-        @test round.(compute_kernel(Mi, Mj, RBFKernel(1)); digits=4) == [1 0.3679; 0.0183 0.3679]
-        @test round.(compute_kernel(Mi, Mj, RBFKernel(20)); digits=4) == [1 0.9975; 0.99 0.9975]
+        @test compute_kernel(Mi, Mj, RBFKernel(1)) ≈ [1 0.3679; 0.0183 0.3679] atol = 1e-4
+        @test compute_kernel(Mi, Mj, RBFKernel(20)) ≈ [1 0.9975; 0.99 0.9975] atol = 1e-4
     end
 
     @testset "titanic feature preprocessing" begin
@@ -29,7 +29,7 @@ using DataFrames
     end
 
     @testset "SVM solution" begin
-        X = [-1 1; 0 1; 1 1; 2 1; 3 1; 4 1]
+        X = [-1; 0; 1; 2; 3; 4]
         y = [1, 1, 1, -1, -1, -1]
         K = compute_kernel(X, X, LinearKernel())
         C = 10000
@@ -39,12 +39,12 @@ using DataFrames
         @test compute_bias(K, y, z, C) ≈ 3 atol=1e-5
 
         model = solve_SVM(X, y, C)
-        @test classify_SVM([-4 1; -3 1; 5 1; 6 1], model) == [1, 1, -1, -1]
+        @test classify_SVM([-4; -3; 5; 6], model) == [1, 1, -1, -1]
     end
 
     @testset "prepare_data_for_SVM" begin
         X, y = prepare_data_for_SVM([-1; 0; 3; 4], [1,1,0,0])
-        @test X ≈ [-1.05021 1.0; -0.63012 1.0; 0.63012 1.0; 1.05021 1.0] atol=1e-5
+        @test X ≈ [-1.05021; -0.63012; 0.63012; 1.05021] atol=1e-5
         @test y == [1, 1, -1, -1]
     end
 

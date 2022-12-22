@@ -14,11 +14,11 @@ struct RBFKernel <: KernelSpecification
     std::Real
 end
 
-compute_kernel(Xi::Matrix{<:Real}, Xj::Matrix{<:Real}, ::LinearKernel) = (Xi * Xj')
+compute_kernel(Xi, Xj, ::LinearKernel) = (Xi * Xj')
 
-compute_kernel(Xi::Matrix{<:Real}, Xj::Matrix{<:Real}, pk::PolynomialKernel) = ((Xi * Xj') + ones((size(Xi, 1), size(Xj, 1)))) .^ pk.d
+compute_kernel(Xi, Xj, pk::PolynomialKernel) = ((Xi * Xj') + ones((size(Xi, 1), size(Xj, 1)))) .^ pk.d
 
-function compute_kernel(Xi::Matrix{<:Real}, Xj::Matrix{<:Real}, rk::RBFKernel)
+function compute_kernel(Xi, Xj, rk::RBFKernel)
     n = size(Xi, 1)
     m = size(Xj, 1)
     d = size(Xi, 2)
@@ -69,17 +69,16 @@ data with following following keys-value pairs:
 - `model["bias"]`: bias
     
 # Arguments
-- `X::Matrix{<:Real}`: data matrix of size (n, d+1), where n is the number of data samples, d is the
-dimension of data samples - the data samples must be augmented with an additional column of ones
-(for the bias term)
-- `y::Vector{<: Integer}`: labels equal to either 1, or -1 of size (n,)
+- `X`: data vector of size `(n,)` or data matrix of size `(n, d)`, where `n` is
+the number of data samples, `d` is the dimension of data samples
+- `y::Vector{<: Integer}`: labels equal to either 1, or -1 of size `(n,)`
 - `C`: upper bound for SV multipliers, must be greater than 0
 - `kernel::KernelSpecification=LinearKernel()`: kernel used for SVM solution and classification
 - `eps::Real=1e-6`: precision for the dual problem solution
 
 See also `prepare_data_for_SVM`, `classify_SVM`, `hyperparam_cross_validation`.
 """
-function solve_SVM(X::Matrix{<:Real}, y::Vector{<:Integer}, C::Real; kernel::KernelSpecification=LinearKernel(), eps::Real=1e-6)
+function solve_SVM(X, y::Vector{<:Integer}, C::Real; kernel::KernelSpecification=LinearKernel(), eps::Real=1e-6)
     K = compute_kernel(X, X, kernel)
 
     z = solve_SVM_dual(K, y, C; eps)
@@ -125,12 +124,11 @@ Classifies the given augmented data according to the given model. Returns vector
 of predicted labels for the given data.
     
 # Arguments
-- `X::Matrix{<:Real}`: data matrix of size (n, d+1), where n is the number of data samples, d is the
-dimension of data samples - the data samples must be augmented with an additional column of ones
-(for the bias term)
+- `X`: data vector of size `(n,)` or data matrix of size `(n, d)`, where `n` is
+the number of data samples, `d` is the dimension of data samples
 - `model::Dict`: trained SVM model returned by the `solve_SVM` function
 """
-function classify_SVM(X::Matrix{<:Real}, model::Dict)
+function classify_SVM(X, model::Dict)
     K = compute_kernel(X, model["sv"], model["kernel"])
 
     #w' * X + bias
@@ -146,28 +144,29 @@ end
     hyperparam_cross_validation(X, y)
 
 Returns a `hyperparam` Dict with best hyperparameters for the SVM algorithm according to average
-classification error over the course of several iterations of cross validation of
+classification error over the course of several iterations of cross validation ran on
 the given data. Return value has following structure:
 - `hyperparam["C"]`: upper bound for the SV multipliers
 - `hyperparam["Kernel"]`: `KernelSpecification` - polynomial, RBF, or linear kernel
 with its hyperparameters
     
 # Arguments
-- `X::Matrix{<:Real}`: data matrix of size (n, d+1), where n is the number of data samples, d is the
-dimension of data samples - the data samples must be augmented with an additional column of ones
-(for the bias term)
+- `X`: data vector of size `(n,)` or data matrix of size `(n, d)`, where `n` is
+the number of data samples, `d` is the dimension of data samples
 - `y::Vector{<: Integer}`: labels equal to either 1, or -1 of size (n,)
 - `train_ratio::Float64=0.8`: ratio based on which input data are split into
 train and test sets for cross validation
-- `num_iter::Integer = 10`: number of iterations of the cross validation
+- `num_iter::Integer=10`: number of iterations of the cross validation
 - `Cs=nothing`: vector of hyperparameters C for SVM algorithm, if set to nothing
 C from [0.001, 0.1, 1, 10, 1000] are tested
 - `kernels=nothing`: vector of kernel specifications, if set to nothing,
 linear kernel, polynomial kernel with degree from [1, 3, 5], and RBF kernel
 with sigma from [0.1, 1, 10, 20, 100] are tested
 - `eps::Real=1e-6`: accuracy for numerical methods for solving the SVM dual problem
+
+See also `prepare_data_for_SVM`.
 """
-function hyperparam_cross_validation(X::Matrix{<:Real}, y::Vector{<:Integer}; train_ratio::Float64=0.8, num_iter::Integer=10, Cs=nothing, kernels=nothing, eps::Real=1e-6)
+function hyperparam_cross_validation(X, y::Vector{<:Integer}; train_ratio::Float64=0.8, num_iter::Integer=10, Cs=nothing, kernels=nothing, eps::Real=1e-6)
     Cs = Cs === nothing ? [0.001, 0.1, 1, 10, 1000] : Cs
     kernels = kernels === nothing ? [LinearKernel(), PolynomialKernel(1), PolynomialKernel(3),
         PolynomialKernel(5), RBFKernel(0.1), RBFKernel(1), RBFKernel(10), RBFKernel(20),
@@ -198,7 +197,7 @@ function hyperparam_cross_validation(X::Matrix{<:Real}, y::Vector{<:Integer}; tr
     return best_err, best_hyperparams
 end
 
-function random_data_split(X::Matrix{<:Real}, y::Vector{<:Integer}; train_ratio::Float64)
+function random_data_split(X, y::Vector{<:Integer}; train_ratio::Float64)
     n = length(y)
     cv_train_cnt = floor(Int, n * train_ratio)
 
@@ -215,9 +214,9 @@ end
 """
     prepare_data_for_SVM(X, y)
 
-Augments given data with bias term, standardizes the data, and converts data labels to 
-format required by `solve_SVM` and `classify_SVM`. Returns tuple `(X, y)`,
-where `X` is the augmented standardized data matrix, and `y` is the modified labels vector.
+Standardizes the data, and converts data labels to format required by `solve_SVM`
+and `classify_SVM`. Returns tuple `(X, y)`, where `X` is the standardized data matrix,
+or data vector based on the input, and `y` is the modified labels vector.
     
 # Arguments
 - `X`: data matrix of size (n, d), where n is the number of data samples, d is the
@@ -226,7 +225,6 @@ dimension of data samples, or data vector of size (n,).
 """
 function prepare_data_for_SVM(X, y::Vector{<:Integer})
     X = standardize_data(X)       # mean = 0, std = 1
-    X = hcat(X, ones(size(X, 1))) # add bias
 
     y[y.!=1] .= -1 # transform labels to 1, and -1
 

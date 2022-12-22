@@ -4,11 +4,11 @@ using CSV
 using DataFrames
 
 export name_preprocessing, name_preprocessing!, cabin_preprocessing, cabin_preprocessing!,
-ticket_preprocessing, ticket_preprocessing!, titanic_preprocessing, ticket_preprocessing!,
-compute_kernel, LinearKernel, PolynomialKernel, RBFKernel, solve_SVM_dual, compute_bias,
-solve_SVM, classify_SVM, prepare_data_for_SVM, hyperparam_cross_validation, categorical_to_int,
-categorical_to_int!, replace_missing_with_median, replace_missing_with_most_common,
-replace_missing_with_linreg, standardize_data, CSV_to_df
+    ticket_preprocessing, ticket_preprocessing!, titanic_preprocessing, ticket_preprocessing!,
+    compute_kernel, LinearKernel, PolynomialKernel, RBFKernel, solve_SVM_dual, compute_bias,
+    solve_SVM, classify_SVM, prepare_data_for_SVM, hyperparam_cross_validation, categorical_to_int,
+    categorical_to_int!, replace_missing_with_median, replace_missing_with_most_common,
+    replace_missing_with_linreg, standardize_data, CSV_to_df, random_data_split
 
 
 include("svm.jl")
@@ -24,15 +24,15 @@ end
 function name_to_title(titanic_df::DataFrame)
     titanic_cpy = copy(titanic_df)
     name_to_title!(titanic_cpy)
-    return titanic_cpy 
+    return titanic_cpy
 end
 
 name_to_title!(titanic_df::DataFrame) = transform!(titanic_df, :Name => ByRow(get_normalized_title) => :Name)
 
 function get_title_token(title::AbstractString)
     replacement_rules = [[["Dr", "Rev", "Col", "Major", "Capt"], "Officer"],
-    [["Jonkheer", "Countess", "Sir", "Lady", "Don", "Dona"], "Royalty"], 
-    [["Mlle"], "Miss"], [["Ms"], "Miss"], [["Mme"],"Mrs"]]
+        [["Jonkheer", "Countess", "Sir", "Lady", "Don", "Dona"], "Royalty"],
+        [["Mlle"], "Miss"], [["Ms"], "Miss"], [["Mme"], "Mrs"]]
 
     for (title_group, token) in replacement_rules
         if title in title_group
@@ -46,7 +46,7 @@ end
 function title_to_title_token(titanic_df::DataFrame)
     titanic_cpy = copy(titanic_df)
     title_to_title_token!(titanic_cpy)
-    return titanic_cpy 
+    return titanic_cpy
 end
 
 title_to_title_token!(titanic_df::DataFrame) = transform!(titanic_df, :Name => ByRow(get_title_token) => :Name)
@@ -54,7 +54,7 @@ title_to_title_token!(titanic_df::DataFrame) = transform!(titanic_df, :Name => B
 function name_preprocessing(titanic_df::DataFrame)
     titanic_cpy = copy(titanic_df)
     name_preprocessing!(titanic_cpy)
-    return titanic_cpy 
+    return titanic_cpy
 end
 
 function name_preprocessing!(titanic_df::DataFrame)
@@ -62,26 +62,26 @@ function name_preprocessing!(titanic_df::DataFrame)
     title_to_title_token!(titanic_df)
 end
 
-function cabin_to_categorical(cabin::Union{AbstractString, Missing})
+function cabin_to_categorical(cabin::Union{AbstractString,Missing})
     if !ismissing(cabin)
         return cabin[1]
     end
     return 'U'
 end
 
-function cabin_preprocessing(titanic_df::DataFrame) 
+function cabin_preprocessing(titanic_df::DataFrame)
     titanic_cpy = copy(titanic_df)
     cabin_preprocessing!(titanic_cpy)
-    return titanic_cpy 
+    return titanic_cpy
 end
 
 cabin_preprocessing!(titanic_df::DataFrame) = transform!(titanic_df, :Cabin => ByRow(c -> cabin_to_categorical(c)) => :Cabin)
 
-function extract_ticket_num(ticket::AbstractString) 
+function extract_ticket_num(ticket::AbstractString)
     temp = split(ticket, " ")
-    if (length(temp) == 1 && temp[1]=="LINE")
+    if (length(temp) == 1 && temp[1] == "LINE")
         return -1
-    else 
+    else
         return parse(Int64, last(temp))
     end
 end
@@ -95,7 +95,7 @@ function get_ticket_mappig(titanic_df::DataFrame)
 
     sorted_ticket_nums = sort(collect(tickets))
 
-    ticket_idx_mapping = Dict{Integer, Integer}()
+    ticket_idx_mapping = Dict{Integer,Integer}()
     for i in eachindex(sorted_ticket_nums)
         ticket_idx_mapping[sorted_ticket_nums[i]] = i
     end
@@ -106,7 +106,7 @@ end
 function ticket_preprocessing(titanic_df::DataFrame)
     titanic_cpy = copy(titanic_df)
     ticket_preprocessing!(titanic_cpy)
-    return titanic_cpy 
+    return titanic_cpy
 end
 
 function ticket_preprocessing!(titanic_df::DataFrame)
@@ -127,7 +127,7 @@ in the `examples` directory.
 function titanic_preprocessing(titanic_df::DataFrame)
     titanic_cpy = copy(titanic_df)
     titanic_preprocessing!(titanic_cpy)
-    return titanic_cpy 
+    return titanic_cpy
 end
 
 function titanic_preprocessing!(titanic_df::DataFrame)
