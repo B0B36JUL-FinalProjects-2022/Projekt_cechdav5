@@ -32,13 +32,13 @@ function compute_kernel(Xi, Xj, rk::RBFKernel)
     return exp.(-sq_dist ./ (2 * rk.std^2))
 end
 
-function solve_SVM_dual(K::Matrix{<:Real}, y::Vector{<:Real}, C::Real; eps::Real=1e-6)
+function solve_SVM_dual(K::Matrix{<:Real}, y::Vector{<:Real}, C::Real)
     my_dim = size(K, 1)
 
     P = y' .* K .* y
     q = -ones((my_dim,))
 
-    my_settings = COSMO.Settings(eps_abs=1e-2 * eps, eps_rel=1e-2 * eps)
+    #my_settings = COSMO.Settings(eps_abs=1e-5, eps_rel=1e-5)
 
     diagm(ones(3))
     #zi <= C
@@ -49,7 +49,8 @@ function solve_SVM_dual(K::Matrix{<:Real}, y::Vector{<:Real}, C::Real; eps::Real
     c3 = COSMO.Constraint(y', 0, COSMO.ZeroSet)
 
     model = COSMO.Model()
-    assemble!(model, P, q, [c1; c2; c3], settings=my_settings)
+    #assemble!(model, P, q, [c1; c2; c3], settings=my_settings)
+    assemble!(model, P, q, [c1; c2; c3])
     result = COSMO.optimize!(model)
 
     return result.x
@@ -81,7 +82,7 @@ See also `prepare_data_for_SVM`, `classify_SVM`, `hyperparam_cross_validation`.
 function solve_SVM(X, y::Vector{<:Integer}, C::Real; kernel::KernelSpecification=LinearKernel(), eps::Real=1e-6)
     K = compute_kernel(X, X, kernel)
 
-    z = solve_SVM_dual(K, y, C; eps)
+    z = solve_SVM_dual(K, y, C)
 
     b = compute_bias(K, y, z, C; eps)
 
@@ -175,6 +176,7 @@ function hyperparam_cross_validation(X, y::Vector{<:Integer}; train_ratio::Float
     best_err = Inf
     best_hyperparams = nothing
 
+    i = 0
     for C in Cs
         for kern in kernels
             avg_error = 0
@@ -186,6 +188,8 @@ function hyperparam_cross_validation(X, y::Vector{<:Integer}; train_ratio::Float
                 avg_error += sum(tmp[labels.!=tst_y]) / length(tst_y)
             end
             avg_error /= num_iter
+            i+=1
+            print(i, "\n")
 
             if (avg_error < best_err)
                 best_hyperparams = Dict("C" => C, "Kernel" => kern)

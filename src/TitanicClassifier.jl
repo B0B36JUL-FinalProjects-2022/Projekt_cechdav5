@@ -8,7 +8,9 @@ export name_preprocessing, name_preprocessing!, cabin_preprocessing, cabin_prepr
     compute_kernel, LinearKernel, PolynomialKernel, RBFKernel, solve_SVM_dual, compute_bias,
     solve_SVM, classify_SVM, prepare_data_for_SVM, hyperparam_cross_validation, categorical_to_int,
     categorical_to_int!, replace_missing_with_median, replace_missing_with_most_common,
-    replace_missing_with_linreg, standardize_data, CSV_to_df, random_data_split
+    replace_missing_with_linreg, standardize_data, CSV_to_df, random_data_split, name_to_title!,
+    title_to_title_token!, replace_missing_with_median!, replace_missing_with_most_common!,
+    categorical_to_int!, replace_missing_with_linreg!
 
 
 include("svm.jl")

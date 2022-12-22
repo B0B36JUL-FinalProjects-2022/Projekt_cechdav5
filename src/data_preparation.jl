@@ -9,6 +9,10 @@ function CSV_to_df(path)
     end
 end
 
+function pred_to_CSV(path)
+    CSV.write(path, )
+end
+
 function get_categorical_int_mapping(categorical::AbstractVector)
     c = unique(categorical)
     mapping = Dict()
