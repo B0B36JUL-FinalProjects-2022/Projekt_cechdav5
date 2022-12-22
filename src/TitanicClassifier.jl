@@ -7,7 +7,9 @@ using DataFrames
 export name_preprocessing, name_preprocessing!, cabin_preprocessing, cabin_preprocessing!,
 ticket_preprocessing, ticket_preprocessing!, titanic_preprocessing, ticket_preprocessing!,
 compute_kernel, LinearKernel, PolynomialKernel, RBFKernel, solve_SVM_dual, compute_bias,
-solve_SVM, classify_SVM, prepare_data_for_SVM, hyperparam_cross_validation
+solve_SVM, classify_SVM, prepare_data_for_SVM, hyperparam_cross_validation, categorical_to_int,
+categorical_to_int!, replace_missing_with_median, replace_missing_with_most_common,
+replace_missing_with_linreg, standardize_data, CSV_to_df
 
 #=
 compute_bias, classify_SVM, hyperparamCrossValidation, categorical_to_int!,

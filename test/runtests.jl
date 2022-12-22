@@ -1,10 +1,8 @@
 using TitanicClassifier
 using Test
-using Random
 using DataFrames
 
 @testset "TitanicClassifier.jl" begin
-    Random.seed!(1)
 
     @testset "compute_kernel" begin
         Mi = [1 2; 3 4]
@@ -50,5 +48,29 @@ using DataFrames
         @test y == [1, 1, -1, -1]
     end
 
-    
+    @testset "replace missing values" begin
+        df = DataFrame(A = [1, 1, missing, 2, 3, 4], B = [0, 0, 6, 1, 2, 3],
+        C = [2, 2, missing, 3, 4, 5], D = [2, 2, 4, 3, 4, 5])
+
+        @test replace_missing_with_most_common(df, "A")[!, "A"] == [1, 1, 1, 2, 3, 4]
+        @test replace_missing_with_median(df, "A")[!, "A"] == [1, 1, 2, 2, 3, 4]
+        @test replace_missing_with_linreg(df, "A", "B")[!, "A"] ≈ [1, 1, 8.57142, 2, 3, 4] atol=1e-5
+
+        @test replace_missing_with_most_common(df, ["A", "C"])[!, ["A",
+        "C"]] == DataFrame(A = [1, 1, 1, 2, 3, 4], C = [2, 2, 2, 3, 4, 5])
+        @test replace_missing_with_median(df, ["A", "C"])[!, ["A",
+        "C"]] == DataFrame(A = [1, 1, 2, 2, 3, 4], C=[2, 2, 3, 3, 4, 5])
+        @test replace_missing_with_linreg(df, "A", ["B", "D"])[!, "A"] ≈ [1, 1, 5, 2, 3, 4] atol=1e-5
+    end
+
+    @testset "categorical_to_int" begin
+        df = DataFrame(A = ["Hello", "World", "Hello", "dlroW"])
+        @test categorical_to_int(df[!, "A"]) == [1, 2, 1, 3]
+    end
+
+    @testset "standardize_data" begin
+        X = standardize_data([-2 1; -1 2; 0 3; 1 4; 2 5; 3 6; 4 7; 5 8])
+        @test standardize_data(X) ≈ [-1.428 -1.428; -1.020 -1.020; -0.612 -0.612;
+         -0.204 -0.204; 0.204 0.204; 0.612 0.612; 1.020 1.020; 1.428 1.428] atol=1e-2
+    end
 end
