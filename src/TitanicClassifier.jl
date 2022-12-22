@@ -6,7 +6,8 @@ using DataFrames
 # Write your package code here.
 export name_preprocessing, name_preprocessing!, cabin_preprocessing, cabin_preprocessing!,
 ticket_preprocessing, ticket_preprocessing!, titanic_preprocessing, ticket_preprocessing!,
-computeKernel, LinearKernel, PolynomialKernel, RBFKernel
+compute_kernel, LinearKernel, PolynomialKernel, RBFKernel, solve_SVM_dual, compute_bias,
+solve_SVM, classify_SVM, prepare_data_for_SVM, hyperparam_cross_validation
 
 #=
 compute_bias, classify_SVM, hyperparamCrossValidation, categorical_to_int!,

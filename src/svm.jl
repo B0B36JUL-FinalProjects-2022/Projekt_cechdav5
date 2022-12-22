@@ -14,11 +14,11 @@ struct RBFKernel <: KernelSpecification
     std::Real
 end
 
-computeKernel(Xi, Xj, ::LinearKernel) = (Xi*Xj')
+compute_kernel(Xi, Xj, ::LinearKernel) = (Xi*Xj')
 
-computeKernel(Xi, Xj, pk::PolynomialKernel) = ((Xi*Xj') + ones((size(Xi, 1), size(Xj,1)))) .^ pk.d
+compute_kernel(Xi, Xj, pk::PolynomialKernel) = ((Xi*Xj') + ones((size(Xi, 1), size(Xj,1)))) .^ pk.d
 
-function computeKernel(Xi, Xj, rk::RBFKernel)
+function compute_kernel(Xi, Xj, rk::RBFKernel)
     n = size(Xi,1)
     m = size(Xj,1)
     d = size(Xi,2)
@@ -32,11 +32,13 @@ function computeKernel(Xi, Xj, rk::RBFKernel)
     return exp.(-sq_dist ./ (2*rk.std^2))
 end
  
-function solve_SVM_dual(K::Matrix{<: Real}, y::Vector{<: Real}, C::Real)
+function solve_SVM_dual(K::Matrix{<: Real}, y::Vector{<: Real}, C::Real; eps::Real=1e-6)
     my_dim = size(K, 1)
 
     P = y'.*K.*y
     q = -ones((my_dim,))
+
+    my_settings = COSMO.Settings(eps_abs = 1e-2*eps, eps_rel = 1e-2*eps)
 
     diagm(ones(3))
     #zi <= C
@@ -47,35 +49,35 @@ function solve_SVM_dual(K::Matrix{<: Real}, y::Vector{<: Real}, C::Real)
     c3 = COSMO.Constraint(y', 0, COSMO.ZeroSet)
 
     model = COSMO.Model();
-    assemble!(model, P, q, [c1; c2; c3])
+    assemble!(model, P, q, [c1; c2; c3], settings=my_settings)
     result = COSMO.optimize!(model);
 
     return result.x
 end
  
-function solve_SVM(X, y::Vector{<: Integer}, C::Real; kernel::KernelSpecification=LinearKernel())
-    K = computeKernel(X, X, kernel)
+function solve_SVM(X, y::Vector{<: Integer}, C::Real; kernel::KernelSpecification=LinearKernel(), eps::Real=1e-6)
+    K = compute_kernel(X, X, kernel)
 
-    z = solve_SVM_dual(K, y, C)
+    z = solve_SVM_dual(K, y, C; eps)
 
-    b = compute_bias(K, y, z, C)
+    b = compute_bias(K, y, z, C; eps)
 
-    return Dict("z" => z[z .> 0], "bias" => b, "y"=>y[z .> 0], "sv" => X[z .> 0, :], "kernel" => kernel)
+    return Dict("z" => z[z .> eps], "bias" => b, "y"=>y[z .> eps], "sv" => X[z .> eps, :], "kernel" => kernel)
 end
  
-function compute_bias(K::Matrix{<: Real}, y::Vector{<: Integer}, z::Vector{<: Real}, C::Real)
+function compute_bias(K::Matrix{<: Real}, y::Vector{<: Integer}, z::Vector{<: Real}, C::Real; eps::Real=1e-6)
     zy = y.*z
 
-    on_margin_mask = (z .> 0) .&& (z .< C) #support vectors exactly on margin
+    on_margin_mask = (z .> eps) .&& (z .< C-eps) #support vectors exactly on margin
     if any(on_margin_mask)
         ids = collect(1:length(y))[on_margin_mask] #margin support vectors indices
     
         ct = count(on_margin_mask)
     
         # b = mean(ys - z*xs) where xs, ys are all support vectors
-        bias = sum(y[ids] .- reshape(sum(zy .* K[:, ids]; dims=1), (ct,))) / length(ids)
+        bias = sum(y[ids] .- reshape(sum(zy .* K[ids, :]'; dims=1), (ct,))) / length(ids)
     else #all support vectors violate the margin
-        sv_mask = z .> 0
+        sv_mask = z .> eps
         not_sv_mask = (sv_mask) .== false
 
         e_i = y .- reshape(sum(zy .* K; dims=1), (length(y,)))
@@ -93,7 +95,7 @@ function compute_bias(K::Matrix{<: Real}, y::Vector{<: Integer}, z::Vector{<: Re
 end
 
 function classify_SVM(X, model::Dict)
-    K = computeKernel(X, model["sv"], model["kernel"])
+    K = compute_kernel(X, model["sv"], model["kernel"])
 
     #w' * X + bias
     res = (K .* reshape(model["y"], (1, length(model["y"])))) * model["z"] .+ model["bias"]
@@ -104,7 +106,7 @@ function classify_SVM(X, model::Dict)
     return classif
 end
 
-function hyperparamCrossValidation(X, y::Vector{<: Integer}; train_ratio::Float64=0.8, num_iter::Integer = 10, Cs::Vector{<: Real}=nothing, kernels::Vector{KernelSpecification}=nothing)
+function hyperparam_cross_validation(X, y::Vector{<: Integer}; train_ratio::Float64=0.8, num_iter::Integer = 10, Cs=nothing, kernels=nothing)
     Cs = Cs === nothing ? [0.001, 0.1, 1, 10, 1000] : Cs
     kernels = kernels === nothing ? [LinearKernel(), PolynomialKernel(1), PolynomialKernel(3), 
     PolynomialKernel(5), RBFKernel(0.1), RBFKernel(1), RBFKernel(10), RBFKernel(20),
@@ -117,7 +119,7 @@ function hyperparamCrossValidation(X, y::Vector{<: Integer}; train_ratio::Float6
         for kern in kernels
             avg_error = 0
             for i in 1:num_iter
-                trn_x, trn_y, tst_x, tst_y = randomDataSplit(X, y; train_ratio)
+                trn_x, trn_y, tst_x, tst_y = random_data_split(X, y; train_ratio)
                 model = solve_SVM(trn_x, trn_y, C; kernel = kern)
                 labels = classify_SVM(tst_x, model)
                 tmp = ones(length(tst_y))
@@ -135,7 +137,7 @@ function hyperparamCrossValidation(X, y::Vector{<: Integer}; train_ratio::Float6
     return best_err, best_hyperparams
 end
 
-function randomDataSplit(X, y::Vector{<: Integer}; train_ratio::Float64)
+function random_data_split(X, y::Vector{<: Integer}; train_ratio::Float64)
     n = length(y)
     cv_train_cnt = floor(Int, n*train_ratio)
     
