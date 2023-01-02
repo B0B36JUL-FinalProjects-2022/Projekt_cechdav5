@@ -12,7 +12,7 @@ The package is not registered and this can be installed in the following way
 (@v1.8) pkg> add https://github.com/B0B36JUL-FinalProjects-2022/Projekt_cechdav5
 ```
 
-## Detailed infromation
+## Detailed information
 
 The main goal of the package is to provide a simple interface for choosing hyperparameters and training of the SVM algorithm on the Titanic dataset and subsequent classification of unlabeled data.
 
